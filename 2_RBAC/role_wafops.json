@@ -1,0 +1,13 @@
+{
+    "Name": "WafOps",
+    "Description": "Waf Automation role",
+    "Actions": [
+        "*/read",
+        "Microsoft.Network/applicationGateways/*",
+        "Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies/*"
+
+    ],
+    "NoActions": [
+    ],
+    "AssignableScopes": ["/subscriptions/{subscription_id}"]
+}
