@@ -245,7 +245,20 @@ class ManagedRuleSet
 {
     public string ruleSetType {get; set;}
     public string ruleSetVersion {get; set;}
-    public List<string> ruleGroupOverrides {get; set;} // check schema
+    public List<RuleGroupOverride> ruleGroupOverrides {get; set;}
+}
+
+class RuleGroupOverride
+{
+    public string ruleGroupName {get; set;}
+    public List<Rule> rules  {get; set;}
+
+}
+
+class Rule
+{
+    public string ruleId {get; set;}
+    public string state {get; set;}
 }
 
 class MatchCondition
