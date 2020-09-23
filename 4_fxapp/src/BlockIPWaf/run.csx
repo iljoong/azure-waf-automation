@@ -19,7 +19,8 @@ public static async Task<IActionResult> Run(HttpRequest req, ILogger log)
     "subscriptionid": "{subscription id}",
     "resourcegroup": "{resourcegroup name}",
     "resourcename": "{policy name}",
-    "clientid": "{client id of identity}",
+    "clientid": "{client id of indentity}",
+    "action": "add" | "remove"
     "blockips": [
         "10.10.10.10",
         "11.11.11.11"
@@ -35,11 +36,40 @@ public static async Task<IActionResult> Run(HttpRequest req, ILogger log)
     var res = await response.Content.ReadAsStringAsync();
     var token = JsonConvert.DeserializeObject<Token>(res);
 
-    //string policy = await GetWafPolicy(subscriptionid, resourcegroup, resourcename, token.access_token);
-    string policy = await PutWafPolicy(subscriptionid, resourcegroup, resourcename, token.access_token, blockips);
+    res = await GetWafPolicy(subscriptionid, resourcegroup, resourcename, token.access_token);
+    var wafPolicy = JsonConvert.DeserializeObject<WafPolicy>(res);
+
+    // find `IPBlock` rule
+    for (int i =0; i < wafPolicy.properties.customRules.Count; i++)
+    {
+        // update IPs list (assume only one matchcondition)
+        if (wafPolicy.properties.customRules[i].name == "IPBlock")
+        {
+            if (data.action.ToLower() == "add")
+            {
+                // add
+                wafPolicy.properties.customRules[i].matchConditions[0].matchValues.InsertRange(
+                    wafPolicy.properties.customRules[i].matchConditions[0].matchValues.Count,
+                    data.blockips);
+            }
+            else
+            {
+                // remove
+                List<string> newList = wafPolicy.properties.customRules[i].matchConditions[0].matchValues;
+                newList.RemoveAll(x => data.blockips.Contains(x));
+                wafPolicy.properties.customRules[i].matchConditions[0].matchValues = newList;
+            }
+        }
+
+    }
+
+    string newPolicy = JsonConvert.SerializeObject(wafPolicy);
+
+    string policy = await PutWafPolicy(subscriptionid, resourcegroup, resourcename, token.access_token, newPolicy);
 
     return new OkObjectResult(policy);
 }
+
 
 static async Task<HttpResponseMessage> GetToken(string resource, string clientid)  {
 
@@ -71,6 +101,24 @@ static async Task<string> GetWafPolicy(string subscriptionId, string resourceGro
 }
 
 static async Task<string> PutWafPolicy(string subscriptionId, string resourceGroupName, string resourceName,
+    string accessToken, string newPolicy)  {
+
+    string _url = $"https://management.azure.com/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies/{resourceName}?api-version=2020-06-01";
+
+    using (var _client = new HttpClient())
+    {
+        var request = new HttpRequestMessage(HttpMethod.Put, _url);
+        request.Headers.Add("Authorization", $"Bearer {accessToken}");
+        request.Content = new StringContent(newPolicy, Encoding.UTF8, "application/json");
+
+        var response = await _client.SendAsync(request);
+        var res = await response.Content.ReadAsStringAsync();
+        
+        return res;
+    }
+}
+
+static async Task<string> PutWafPolicy_Old(string subscriptionId, string resourceGroupName, string resourceName,
     string accessToken, string blockips)  {
 
     string _url = $"https://management.azure.com/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies/{resourceName}?api-version=2020-06-01";
@@ -150,6 +198,67 @@ class Payload
     public string resourcegroup { get; set; }
     public string resourcename { get; set; }
     public string clientid { get; set; }
+    public string action { get; set; }
     public List<string> blockips { get; set; }
 }
 
+class WafPolicy
+{
+    public string location { get; set; }
+    public Properties properties { get; set; }
+}
+
+class Properties
+{
+    public List<CustomRule> customRules { get; set; }
+    public PolicySettings policySettings { get; set; }
+    public ManagedRules managedRules { get; set; }
+}
+
+class CustomRule
+{
+    public string name {get; set;}
+    public string priority {get; set;}
+    public string ruleType {get; set;}
+    public string  action {get; set;}
+    
+    public List<MatchCondition> matchConditions {get; set;}
+    public List<string> skippedManagedRuleSets {get; set;} // check schema
+}
+
+class PolicySettings
+{
+    public bool requestBodyCheck {get; set;}
+    public int maxRequestBodySizeInKb {get; set;}
+    public int fileUploadLimitInMb {get; set;}
+    public string state {get; set;}
+    public string mode {get; set;}
+}
+
+class ManagedRules
+{
+    public List<ManagedRuleSet> managedRuleSets {get; set;}
+    public List<string> exclusions {get; set;} // check schema
+}
+
+class ManagedRuleSet 
+{
+    public string ruleSetType {get; set;}
+    public string ruleSetVersion {get; set;}
+    public List<string> ruleGroupOverrides {get; set;} // check schema
+}
+
+class MatchCondition
+{
+    public List<MatchVariable> matchVariables {get; set;}
+    [JsonProperty("operator")]
+    public string _operator {get; set;}
+    public bool negationConditon {get; set;}
+    public List<string> matchValues {get; set;}
+    public List<string> transforms {get; set;}  // check schema
+}
+
+class MatchVariable
+{
+    public string variableName  {get; set;}
+}

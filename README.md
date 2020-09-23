@@ -37,15 +37,17 @@ Upload function app package using [zipdeploy.ps1](./zipdeploy.ps1) powershell.
 ./zipdeploy.ps1 -username <username> -password <password> -appname <appname> -filepath fxapp.zip
 ```
 
-## Test
+## Add __Block IP__ to policy
 
-To test block/unblock IPs, check your IP first.
+For block IP test, check your IP first.
 
 ```
 curl ipinfo.io
 ```
 
 Update WAF policy by calling function api with new policy values.
+
+> Policy applies within about 10 sec.
 
 ```bash
 curl --location --request POST 'https://sktsecfxapp.azurewebsites.net/api/BlockIPWaf?code=..==' \
@@ -55,14 +57,28 @@ curl --location --request POST 'https://sktsecfxapp.azurewebsites.net/api/BlockI
     "resourcegroup": "...",
     "resourcename": "wafpolicy",
     "clientid": "...",
+    "action": "add",
     "blockips": [
         "10.10.10.10"
     ]
 }'
 ```
 
-Update by calling function and run following script
+## Remove __Block IP__ to policy
+
+To remove existing block IPs. 
 
 ```bash
-for i in {1..1000}; do out=$(curl -k -s --connect-timeout 2 -m 2 https://wafip -w "%{http_code}\n" -o /dev/null); t=$(date '+%H:%M:%S'); echo "$t $out"; sleep 1s; done
+curl --location --request POST 'https://sktsecfxapp.azurewebsites.net/api/BlockIPWaf?code=..==' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "subscriptionid": "...",
+    "resourcegroup": "...",
+    "resourcename": "wafpolicy",
+    "clientid": "...",
+    "action": "remove",
+    "blockips": [
+        "10.10.10.10"
+    ]
+}'
 ```
