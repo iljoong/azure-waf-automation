@@ -4,6 +4,7 @@ using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 using System.Text;
 using System.Net.Http;
@@ -37,7 +38,8 @@ public static async Task<IActionResult> Run(HttpRequest req, ILogger log)
     var token = JsonConvert.DeserializeObject<Token>(res);
 
     res = await GetWafPolicy(subscriptionid, resourcegroup, resourcename, token.access_token);
-    var wafPolicy = JsonConvert.DeserializeObject<WafPolicy>(res);
+    // Use Dynamic type
+    dynamic wafPolicy = JsonConvert.DeserializeObject(res);
 
     // find `IPBlock` rule
     for (int i =0; i < wafPolicy.properties.customRules.Count; i++)
@@ -48,16 +50,15 @@ public static async Task<IActionResult> Run(HttpRequest req, ILogger log)
             if (data.action.ToLower() == "add")
             {
                 // add
-                wafPolicy.properties.customRules[i].matchConditions[0].matchValues.InsertRange(
-                    wafPolicy.properties.customRules[i].matchConditions[0].matchValues.Count,
-                    data.blockips);
+                wafPolicy.properties.customRules[i].matchConditions[0].matchValues.Merge(JArray.FromObject(data.blockips));
+                
             }
             else
             {
                 // remove
-                List<string> newList = wafPolicy.properties.customRules[i].matchConditions[0].matchValues;
+                List<string> newList = wafPolicy.properties.customRules[i].matchConditions[0].matchValues.ToObject<List<string>>();
                 newList.RemoveAll(x => data.blockips.Contains(x));
-                wafPolicy.properties.customRules[i].matchConditions[0].matchValues = newList;
+                wafPolicy.properties.customRules[i].matchConditions[0].matchValues = JArray.FromObject(newList);
             }
         }
 
@@ -200,78 +201,4 @@ class Payload
     public string clientid { get; set; }
     public string action { get; set; }
     public List<string> blockips { get; set; }
-}
-
-class WafPolicy
-{
-    public string location { get; set; }
-    public Properties properties { get; set; }
-}
-
-class Properties
-{
-    public List<CustomRule> customRules { get; set; }
-    public PolicySettings policySettings { get; set; }
-    public ManagedRules managedRules { get; set; }
-}
-
-class CustomRule
-{
-    public string name {get; set;}
-    public string priority {get; set;}
-    public string ruleType {get; set;}
-    public string  action {get; set;}
-    
-    public List<MatchCondition> matchConditions {get; set;}
-    public List<string> skippedManagedRuleSets {get; set;} // check schema
-}
-
-class PolicySettings
-{
-    public bool requestBodyCheck {get; set;}
-    public int maxRequestBodySizeInKb {get; set;}
-    public int fileUploadLimitInMb {get; set;}
-    public string state {get; set;}
-    public string mode {get; set;}
-}
-
-class ManagedRules
-{
-    public List<ManagedRuleSet> managedRuleSets {get; set;}
-    public List<string> exclusions {get; set;} // check schema
-}
-
-class ManagedRuleSet 
-{
-    public string ruleSetType {get; set;}
-    public string ruleSetVersion {get; set;}
-    public List<RuleGroupOverride> ruleGroupOverrides {get; set;}
-}
-
-class RuleGroupOverride
-{
-    public string ruleGroupName {get; set;}
-    public List<Rule> rules  {get; set;}
-
-}
-
-class Rule
-{
-    public string ruleId {get; set;}
-    public string state {get; set;}
-}
-
-class MatchCondition
-{
-    public List<MatchVariable> matchVariables {get; set;}
-    [JsonProperty("operator")]
-    public string _operator {get; set;}
-    public bool negationConditon {get; set;}
-    public List<string> matchValues {get; set;}
-    public List<string> transforms {get; set;}  // check schema
-}
-
-class MatchVariable
-{
-    public string variableName  {get; set;}
 }
