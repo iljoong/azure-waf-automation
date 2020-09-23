@@ -19,7 +19,7 @@ public static async Task<IActionResult> Run(HttpRequest req, ILogger log)
     "subscriptionid": "{subscription id}",
     "resourcegroup": "{resourcegroup name}",
     "resourcename": "{policy name}",
-    "clientid": "{client id of indentity}",
+    "clientid": "{client id of identity}",
     "blockips": [
         "10.10.10.10",
         "11.11.11.11"
