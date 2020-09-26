@@ -1,15 +1,16 @@
 # WAF Automation
 
-This sample demonstrates how to configure App Gateway WAF Policy via Azure Function.
+This sample demonstrates how to develop a WAF automation service (i.e., controlling Azure WAF policy via Azure Functions) for protecting your web service from brute force attack.
 
 ![WAF automation](./waf-auto.png)
 
-## Setup test environment
+This automation service assumes that attacker's IP is detected and triggered by SIEM tool, such as Splunk. Any detected IPs are blocked immediately and stored in DB. Blocked IPs removed after 15 minutes.
 
-> You need to prepare `user assigned identity` with right role assignment. See [RBAC](./2_RBAC) folder.
+## Setup the environment
 
-To setup test environment, run terraform script. See [terraform](./3_terraform) folder for more information.
+> [Managed identity](https://docs.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/overview) and RBAC are used for securely accessing Azure resources. That is, accessing Azure Service Management API and SQL database with no secret and least privilege. You need to prepare `user assigned identity` with right role assignment. See [RBAC](./2_RBAC) folder.
 
+To setup demo environment, run terraform script. See [terraform](./3_terraform) folder for more information.
 
 Terraform will provision and configure as followings:
 
@@ -18,26 +19,19 @@ Terraform will provision and configure as followings:
 - Provision _WAF Policy_ and associate this policy with App GW listeners (80, 443)
 - Provision _Azure Function_ (Consumption plan and dotnet runtime)
     - Storage account is provisioned as part of _Azure Function_
+- Provision _Azure SQL Database + SQL Server_ 
 
-## Setup Function app
+## Post setup
 
-You can manually create a function app at the Portal and copy the source to the Portal editor. You also can deploy using _zipdeploy_ REST API for App Service/Function.
+- Setup SQL
 
-Package function app.
+See [database](./4_database) section for more information.
 
-```powershell
-Compress-Archive -Path 4_fxapp\src\* -DestinationPath .\fxapp.zip -Force
-```
+- Setup Function app
 
-Download [publish profile](https://docs.microsoft.com/en-us/visualstudio/deployment/tutorial-import-publish-settings-azure?view=vs-2019#create-the-publish-settings-file-in-azure-app-service) from function app to get user name and password.
+See [fxapp](./5_fxapp) section for more information.
 
-Upload function app package using [zipdeploy.ps1](./zipdeploy.ps1) powershell.
-
-```powershell
-./zipdeploy.ps1 -username <username> -password <password> -appname <appname> -filepath fxapp.zip
-```
-
-## Add __Block IP__ to policy
+## Test
 
 For block IP test, check your IP first.
 
@@ -47,38 +41,15 @@ curl ipinfo.io
 
 Update WAF policy by calling function api with new policy values.
 
+```bash
+curl --location --request POST 'https://fxapp.azurewebsites.net/api/BlockIPWaf?code=..==' \
+--header 'Content-Type: application/json' \
+--data-raw '{ "your ip" }'
+```
+
 > Policy applies within about 10 sec.
 
-```bash
-curl --location --request POST 'https://sktsecfxapp.azurewebsites.net/api/BlockIPWaf?code=..==' \
---header 'Content-Type: application/json' \
---data-raw '{
-    "subscriptionid": "...",
-    "resourcegroup": "...",
-    "resourcename": "wafpolicy",
-    "clientid": "...",
-    "action": "add",
-    "blockips": [
-        "10.10.10.10"
-    ]
-}'
-```
+The page will be blocked as below.
 
-## Remove __Block IP__ to policy
+![Waf blocked](./waf-blocked.png)
 
-To remove existing block IPs. 
-
-```bash
-curl --location --request POST 'https://sktsecfxapp.azurewebsites.net/api/BlockIPWaf?code=..==' \
---header 'Content-Type: application/json' \
---data-raw '{
-    "subscriptionid": "...",
-    "resourcegroup": "...",
-    "resourcename": "wafpolicy",
-    "clientid": "...",
-    "action": "remove",
-    "blockips": [
-        "10.10.10.10"
-    ]
-}'
-```
