@@ -4,3 +4,4 @@ terraform.*
 override.tf
 _*
 *.zip
+local.settings.json

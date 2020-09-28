@@ -58,13 +58,16 @@ https://docs.microsoft.com/en-us/azure/azure-functions/functions-overview
 
 use `[Singleton(Mode = SingletonMode.Function)]` to avoid any race condition issue with updating WAF policy.
 when adding and removing call happens concurrently, it may corrupt the state. 
-e.g., state: ["1.1.1.1", "2.2.2.2"]
 
-==> wrong state
-removing(1.1.1.1)------->get policy------->remove ip: state (2.2.2.2)
-         add(3.3.3.3)----------->get policy----------->add ip (1.1.1., 2.2.2.2, 3.3.3.3)
-==> right state
-removing(1.1.1.1)-->get policy-->remove ip: state (2.2.2.2)-->add(3.3.3.3)-->get policy-->add ip (1.1.1.1, 3.3.3.3)
+```
+state: ["1.1.1.1", "2.2.2.2"]
+
+//no singleton
+remove(1.1.1.1)------->(get state)------->(remove ip)=>state (2.2.2.2)
+         add(3.3.3.3)----------->(get state)----------->(add ip_ (1.1.1., 2.2.2.2, 3.3.3.3)
+//singleton
+remove(1.1.1.1)-->get state-->(remove ip)=>state (2.2.2.2)-->add(3.3.3.3)-->get state-->(add ip)=>state(1.1.1.1, 3.3.3.3)
+```
 
 ### Multi-tenant 
 
