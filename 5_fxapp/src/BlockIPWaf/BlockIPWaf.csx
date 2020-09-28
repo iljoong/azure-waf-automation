@@ -72,7 +72,8 @@ public static async Task<IActionResult> Run(HttpRequest req, ILogger log)
             // update IPs list (assume only one matchcondition)
             if (wafPolicy.properties.customRules[i].name == "IPBlock")
             {
-                    wafPolicy.properties.customRules[i].matchConditions[0].matchValues.Add(data.blockip);
+                wafPolicy.properties.customRules[i].matchConditions[0].matchValues.Add(data.blockip);
+                break;
             }
         }        
     }

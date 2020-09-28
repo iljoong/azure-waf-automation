@@ -47,7 +47,7 @@ public static async Task Run(TimerInfo myTimer, ILogger log)
         // find `IPBlock` rule
         for (int i =0; i < wafPolicy.properties.customRules.Count; i++)
         {
-            // delete IPs where ttl <= 0 (assume only one matchcondition)
+            // delete IPs where ttl <= 0
             if (wafPolicy.properties.customRules[i].name == "IPBlock")
             {
                 List<string> newList = wafPolicy.properties.customRules[i].matchConditions[0].matchValues.ToObject<List<string>>();
@@ -56,6 +56,8 @@ public static async Task Run(TimerInfo myTimer, ILogger log)
                     wafPolicy.properties.customRules.RemoveAt(i);
                 else
                     wafPolicy.properties.customRules[i].matchConditions[0].matchValues = JArray.FromObject(newList);
+
+                break;
             }
         }
 
