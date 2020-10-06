@@ -1,6 +1,6 @@
 # Azure Functions
 
-This Azure Function is developed with [C# script (csx)](https://docs.microsoft.com/en-us/azure/azure-functions/functions-reference-csharp) and targeted for dotnetcore 2.x runtime.
+This Azure Function is developed with [C# script (csx)](https://docs.microsoft.com/en-us/azure/azure-functions/functions-reference-csharp) and targeted for `dotnetcore 2.x` runtime.
 
 You may upgrade to 3.x runtime and use other languages.
 
@@ -31,3 +31,6 @@ You will deploy two function apps manually and you need to create two functions 
 - create as a _Timer trigger_ function and set 1 minute timer(0 */1 * * * *)
 - copy/deploy the [TTLTimer.csx](./src/TTLTimer/TTLTimer.csx) file to the function.
 
+## Azure Function with dotnetcore 3 runtime
+
+See [Readme](./v2src/README.md) for more detail

@@ -1,4 +1,4 @@
-# FX Local Development
+# Azure Function (dotnetcore 3)
 
 ## Prep
 
@@ -67,7 +67,3 @@ remove(1.1.1.1)------->(get state)------->(remove ip)=>state (2.2.2.2)
 //singleton
 remove(1.1.1.1)-->get state-->(remove ip)=>state (2.2.2.2)-->add(3.3.3.3)-->get state-->(add ip)=>state(1.1.1.1, 3.3.3.3)
 ```
-
-### Multi-tenant 
-
-Support multi-tenant WAF policy
