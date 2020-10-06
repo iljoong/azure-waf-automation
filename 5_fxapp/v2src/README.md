@@ -25,9 +25,13 @@ add define constant, such as `LOCALDEV`, in `.proj` file
     <DefineConstants>LOCALDEV</DefineConstants>
   </PropertyGroup>
 ```
-- `local.settings.json
+- environment variables for accessing Azure service management and SQL 
 
-add following environment variables in this file. 
+since getting auth token from IMDS is not possible,
+- Get token using service principal for Azure service management api, .
+- Use connection string with admin/passwd for SQL token, 
+
+add following environment variables in `local.settings.json`. 
 
 ```
     "SQL_CONNECTION": "sql_connection_string_with_username_password",
@@ -40,11 +44,6 @@ add following environment variables in this file.
     "resourcename": "wafpolicyname",
     "clientid": "clientid of managed identity"
 ```
-
-## Auth Token from IMDS
-
-- For Azure service management api, get token using service principal.
-- For SQL token, use connection string with admin/passwd.
 
 ## Enhancement
 
@@ -64,7 +63,7 @@ state: ["1.1.1.1", "2.2.2.2"]
 
 //no singleton
 remove(1.1.1.1)------->(get state)------->(remove ip)=>state (2.2.2.2)
-         add(3.3.3.3)----------->(get state)----------->(add ip_ (1.1.1., 2.2.2.2, 3.3.3.3)
+         add(3.3.3.3)----------->(get state)----------->(add ip)=>(1.1.1., 2.2.2.2, 3.3.3.3) <- wrong state
 //singleton
 remove(1.1.1.1)-->get state-->(remove ip)=>state (2.2.2.2)-->add(3.3.3.3)-->get state-->(add ip)=>state(1.1.1.1, 3.3.3.3)
 ```
